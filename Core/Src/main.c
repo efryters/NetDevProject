@@ -38,8 +38,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-uint8_t RemoteIP[] = { 172, 16, 1, 151 };
-#define RemotePORT	27015
 
 
 /* USER CODE END PD */
@@ -111,10 +109,8 @@ int main(void) {
 	int32_t Socket = -1;
 	uint16_t Datalen;
 	int32_t ret;
-	int16_t Trials = CONNECTION_TRIAL_MAX;
 
-	lcd_device lcd = { &hi2c1, 0x20 << 1,
-	false };
+
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -145,99 +141,96 @@ int main(void) {
 	MX_I2C1_Init();
 	/* USER CODE BEGIN 2 */
 	BSP_LED_Init(LED2);
-	lcd_init(&lcd);
-	KeyPad_Init();
-	TERMOUT("Hello world. Test.\r\n");
-	lcd_send_command(LCD_CLEARDISPLAY, false);
-	char c = ' ';
+	AppMain();
+/*
+//	/*Initialize  WIFI module */
+//	if (WIFI_Init() == WIFI_STATUS_OK) {
+//		TERMOUT("> WIFI Module Initialized.\r\n");
+//		if (WIFI_GetMAC_Address(MAC_Addr) == WIFI_STATUS_OK) {
+//			TERMOUT("> es-wifi module MAC Address : %X:%X:%X:%X:%X:%X\r\n",
+//					MAC_Addr[0], MAC_Addr[1], MAC_Addr[2], MAC_Addr[3],
+//					MAC_Addr[4], MAC_Addr[5]);
+//		} else {
+//			TERMOUT("> ERROR : CANNOT get MAC address\r\n");
+//			BSP_LED_On(LED2);
+//		}
+//		lcd_send_command(LCD_CLEARDISPLAY, false);
+//		lcd_write_string("Connecting wifi.");
+//		if (WIFI_Connect(SSID, PASSWORD, WIFI_ECN_WPA2_PSK) == WIFI_STATUS_OK) {
+//			TERMOUT("> es-wifi module connected \r\n");
+//
+//			if (WIFI_GetIP_Address(IP_Addr) == WIFI_STATUS_OK) {
+//				TERMOUT("> es-wifi module got IP Address : %d.%d.%d.%d\r\n",
+//						IP_Addr[0], IP_Addr[1], IP_Addr[2], IP_Addr[3]);
+//
+//				TERMOUT("> Trying to connect to Server: %d.%d.%d.%d:%d ...\r\n",
+//						RemoteIP[0], RemoteIP[1], RemoteIP[2], RemoteIP[3],
+//						RemotePORT);
+//
+//				lcd_send_command(LCD_CLEARDISPLAY, false);
+//				lcd_write_string("Connected! Trying server...");
+//
+//				while (Trials--) {
+//					if (WIFI_OpenClientConnection(0, WIFI_TCP_PROTOCOL,
+//							"TCP_CLIENT", RemoteIP, RemotePORT, 0)
+//							== WIFI_STATUS_OK) {
+//						TERMOUT("> TCP Connection opened successfully.\r\n");
+//						lcd_send_command(LCD_CLEARDISPLAY, false);
+//						lcd_write_string("Connected to the server!");
+//						Socket = 0;
+//						break;
+//					}
+//				}
+//				if (Socket == -1) {
+//					TERMOUT("> ERROR : Cannot open Connection\r\n");
+//					lcd_send_command(LCD_CLEARDISPLAY, false);
+//					lcd_write_string("Can't connect to server!");
+//					BSP_LED_On(LED2);
+//
+//				}
+//			} else {
+//				TERMOUT("> ERROR : es-wifi module CANNOT get IP address\r\n");
+//				BSP_LED_On(LED2);
+//			}
+//		} else {
+//			TERMOUT("> ERROR : es-wifi module NOT connected\r\n");
+//			BSP_LED_On(LED2);
+//		}
+//	} else {
+//		TERMOUT("> ERROR : WIFI Module cannot be initialized.\r\n");
+//		BSP_LED_On(LED2);
+//	}
+//
+//	/* USER CODE END 2 */
+//
+//	/* Infinite loop */
+//	/* USER CODE BEGIN WHILE */
+//	while (1) {
+//
+//		if (Socket != -1) {
+//			ret = WIFI_SendData(Socket, TxData, sizeof(TxData),
+//					&Datalen, WIFI_WRITE_TIMEOUT);
+//
+//			ret = WIFI_ReceiveData(Socket, RxData, sizeof(RxData) - 1, &Datalen,
+//					WIFI_READ_TIMEOUT);
+//			if (ret == WIFI_STATUS_OK) {
+//				if (Datalen > 0) {
+//					RxData[Datalen] = 0;
+//					TERMOUT("Received: %s\n", RxData);
+//
+//					if (ret != WIFI_STATUS_OK) {
+//						TERMOUT(
+//								"> ERROR : Failed to Send Data, connection closed\n");
+//						break;
+//					}
+//				}
+//			} else {
+//				TERMOUT(
+//						"> ERROR : Failed to Receive Data, connection closed\n");
+//				break;
+//			}
+//		}
 
-	/*Initialize  WIFI module */
-	if (WIFI_Init() == WIFI_STATUS_OK) {
-		TERMOUT("> WIFI Module Initialized.\r\n");
-		if (WIFI_GetMAC_Address(MAC_Addr) == WIFI_STATUS_OK) {
-			TERMOUT("> es-wifi module MAC Address : %X:%X:%X:%X:%X:%X\r\n",
-					MAC_Addr[0], MAC_Addr[1], MAC_Addr[2], MAC_Addr[3],
-					MAC_Addr[4], MAC_Addr[5]);
-		} else {
-			TERMOUT("> ERROR : CANNOT get MAC address\r\n");
-			BSP_LED_On(LED2);
-		}
-		lcd_send_command(LCD_CLEARDISPLAY, false);
-		lcd_write_string("Connecting wifi.");
-		if (WIFI_Connect(SSID, PASSWORD, WIFI_ECN_WPA2_PSK) == WIFI_STATUS_OK) {
-			TERMOUT("> es-wifi module connected \r\n");
-
-			if (WIFI_GetIP_Address(IP_Addr) == WIFI_STATUS_OK) {
-				TERMOUT("> es-wifi module got IP Address : %d.%d.%d.%d\r\n",
-						IP_Addr[0], IP_Addr[1], IP_Addr[2], IP_Addr[3]);
-
-				TERMOUT("> Trying to connect to Server: %d.%d.%d.%d:%d ...\r\n",
-						RemoteIP[0], RemoteIP[1], RemoteIP[2], RemoteIP[3],
-						RemotePORT);
-
-				lcd_send_command(LCD_CLEARDISPLAY, false);
-				lcd_write_string("Connected! Trying server...");
-
-				while (Trials--) {
-					if (WIFI_OpenClientConnection(0, WIFI_TCP_PROTOCOL,
-							"TCP_CLIENT", RemoteIP, RemotePORT, 0)
-							== WIFI_STATUS_OK) {
-						TERMOUT("> TCP Connection opened successfully.\r\n");
-						lcd_send_command(LCD_CLEARDISPLAY, false);
-						lcd_write_string("Connected to the server!");
-						Socket = 0;
-						break;
-					}
-				}
-				if (Socket == -1) {
-					TERMOUT("> ERROR : Cannot open Connection\r\n");
-					lcd_send_command(LCD_CLEARDISPLAY, false);
-					lcd_write_string("Can't connect to server!");
-					BSP_LED_On(LED2);
-
-				}
-			} else {
-				TERMOUT("> ERROR : es-wifi module CANNOT get IP address\r\n");
-				BSP_LED_On(LED2);
-			}
-		} else {
-			TERMOUT("> ERROR : es-wifi module NOT connected\r\n");
-			BSP_LED_On(LED2);
-		}
-	} else {
-		TERMOUT("> ERROR : WIFI Module cannot be initialized.\r\n");
-		BSP_LED_On(LED2);
-	}
-
-	/* USER CODE END 2 */
-
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
-	while (1) {
-
-		if (Socket != -1) {
-			ret = WIFI_SendData(Socket, TxData, sizeof(TxData),
-					&Datalen, WIFI_WRITE_TIMEOUT);
-
-			ret = WIFI_ReceiveData(Socket, RxData, sizeof(RxData) - 1, &Datalen,
-					WIFI_READ_TIMEOUT);
-			if (ret == WIFI_STATUS_OK) {
-				if (Datalen > 0) {
-					RxData[Datalen] = 0;
-					TERMOUT("Received: %s\n", RxData);
-
-					if (ret != WIFI_STATUS_OK) {
-						TERMOUT(
-								"> ERROR : Failed to Send Data, connection closed\n");
-						break;
-					}
-				}
-			} else {
-				TERMOUT(
-						"> ERROR : Failed to Receive Data, connection closed\n");
-				break;
-			}
-		}
 
 		/* USER CODE END WHILE */
 
@@ -247,7 +240,7 @@ int main(void) {
 //		fflush(stdout);
 //		lcd_send_command((uint8_t) c, true);
 
-	}
+//	}
 	/* USER CODE END 3 */
 }
 
@@ -830,17 +823,7 @@ PUTCHAR_PROTOTYPE {
 }
 #endif /* TERMINAL_USE */
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	switch (GPIO_Pin) {
-	case (GPIO_PIN_1): {
-		SPI_WIFI_ISR();
-		break;
-	}
-	default: {
-		break;
-	}
-	}
-}
+
 /* USER CODE END 4 */
 
 /**
