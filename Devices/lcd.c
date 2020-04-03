@@ -133,11 +133,24 @@ void lcd_send_command(uint8_t cmd, bool print)
 
 void lcd_write_string(const char* str)
 {
-	uint8_t len = strlen(str);
 
+	lcd_send_command(LCD_CLEARDISPLAY, false);
+	uint8_t len = strlen(str);
+	if (len <= 16) {
 	for(int i = 0; i < len; i++)
 	{
 		lcd_send_command((uint8_t)*(str+i), true);
+	}
+	} else {
+		for(int i = 0; i < 16; i++)
+		{
+			lcd_send_command((uint8_t)*(str+i), true);
+		}
+		lcd_set_cursor(1, 0);
+		for(int i = 16; i < len; i++)
+		{
+			lcd_send_command((uint8_t)*(str+i), true);
+		}
 	}
 
 }

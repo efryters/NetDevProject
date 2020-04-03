@@ -27,6 +27,7 @@
 #include "stdbool.h"
 #include "KeyPad.h"
 #include "wifi.h"
+#include "app_wifi.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -36,25 +37,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TERMINAL_USE
 
-/* Update SSID and PASSWORD with own Access point settings */
-#define SSID     "IoTDev24"
-#define PASSWORD "vX943vhIPG"
+uint8_t RemoteIP[] = { 172, 16, 1, 151 };
+#define RemotePORT	27015
 
-uint8_t RemoteIP[] = { 172, 16, 1, 235 };
-#define RemotePORT	8002
 
-#define WIFI_WRITE_TIMEOUT 10000
-#define WIFI_READ_TIMEOUT  10000
-
-#define CONNECTION_TRIAL_MAX          10
-
-#if defined (TERMINAL_USE)
-#define TERMOUT(...)  printf(__VA_ARGS__)
-#else
-#define TERMOUT(...)
-#endif
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -189,9 +176,7 @@ int main(void) {
 						RemotePORT);
 
 				lcd_send_command(LCD_CLEARDISPLAY, false);
-				lcd_write_string("Connected!");
-				lcd_set_cursor(1, 0);
-				lcd_write_string("Trying server...");
+				lcd_write_string("Connected! Trying server...");
 
 				while (Trials--) {
 					if (WIFI_OpenClientConnection(0, WIFI_TCP_PROTOCOL,
@@ -199,9 +184,7 @@ int main(void) {
 							== WIFI_STATUS_OK) {
 						TERMOUT("> TCP Connection opened successfully.\r\n");
 						lcd_send_command(LCD_CLEARDISPLAY, false);
-						lcd_write_string("Connected to");
-						lcd_set_cursor(1, 0);
-						lcd_write_string("the server!");
+						lcd_write_string("Connected to the server!");
 						Socket = 0;
 						break;
 					}
@@ -209,10 +192,9 @@ int main(void) {
 				if (Socket == -1) {
 					TERMOUT("> ERROR : Cannot open Connection\r\n");
 					lcd_send_command(LCD_CLEARDISPLAY, false);
-					lcd_write_string("Can't connect to");
-					lcd_set_cursor(1, 0);
-					lcd_write_string("server!");
+					lcd_write_string("Can't connect to server!");
 					BSP_LED_On(LED2);
+
 				}
 			} else {
 				TERMOUT("> ERROR : es-wifi module CANNOT get IP address\r\n");

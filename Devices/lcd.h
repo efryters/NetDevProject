@@ -10,6 +10,7 @@
 
 #include "stm32l4xx_hal.h"
 #include "stdbool.h"
+#include "string.h"
 
 // MCP23008 port expander registers
 #define MCP_IODIR_ADDR 0x00
