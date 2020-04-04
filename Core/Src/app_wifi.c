@@ -12,26 +12,12 @@
 /* USER CODE BEGIN Includes */
 #include "lcd.h"
 #include "stdbool.h"
+#include "stdlib.h"
 #include "KeyPad.h"
 #include "wifi.h"
 #include "app_wifi.h"
 #include "app_wifi_conf.h"
 
-
-typedef struct {
-
-	uint8_t MAC_Addr[6];
-	uint8_t IP_Addr[4];
-	uint16_t trials;
-	uint8_t socket;
-
-	uint8_t RemoteIP[4];
-	uint16_t RemotePort;
-
-	const char* Ssid;
-	const char* passwd;
-
-} WifiInfo_s;
 
 /* Private Variables */
 extern I2C_HandleTypeDef hi2c1;
@@ -46,7 +32,8 @@ int init_wifi_hw(WifiInfo_s *wifiInfo);
 int wifi_connect_ssid();
 int wifi_get_ip(WifiInfo_s *wifiInfo);
 int wifi_connect_server();
-
+int wifi_get_punch_info(PunchInfo_s *punchInfo);
+int wifi_send_data(WifiInfo_s *wifiInfo, PunchInfo_s *punchInfo);
 
 /*
  * State machine for application
@@ -55,8 +42,9 @@ void AppMain()
 {
 
 	char test[] = "Blue button!";
-	uint16_t Datalen;
 	WifiInfo_s wifiInfo = {0};
+	PunchInfo_s punchInfo = {0};
+
 	uint8_t g8WifiState = WIFI_RESET;
 	lcd_device lcd = { &hi2c1, 0x20 << 1, false };
 
@@ -98,6 +86,7 @@ void AppMain()
 			lcd_write_string("Init HW");
 			if (init_wifi_hw(&wifiInfo) != WIFI_STATUS_OK) {
 				g8WifiState = WIFI_HALT;
+				break;
 			}
 
 			g8WifiState = WIFI_CONNECT_SSID;
@@ -109,6 +98,7 @@ void AppMain()
 			lcd_write_string("Connect to SSID");
 			if (wifi_connect_ssid() != WIFI_STATUS_OK) {
 				g8WifiState = WIFI_HALT;
+				break;
 			}
 
 			g8WifiState = WIFI_GET_IP;
@@ -120,6 +110,7 @@ void AppMain()
 			lcd_write_string("Getting IP");
 			if (wifi_get_ip(&wifiInfo) != WIFI_STATUS_OK) {
 				g8WifiState = WIFI_HALT;
+				break;
 			}
 
 			g8WifiState = WIFI_CONNECT_SERVER;
@@ -132,6 +123,7 @@ void AppMain()
 			if (wifi_connect_server(&wifiInfo) != WIFI_STATUS_OK)
 			{
 				g8WifiState = WIFI_HALT;
+				break;
 			}
 
 			g8WifiState = WIFI_WAIT_FOR_PUNCH;
@@ -144,30 +136,37 @@ void AppMain()
 			lcd_write_string("Press blue btn to punch.");
 			while(punch) {}
 			// Turn it off now cuz we don't want this happening outside this case.
-			BSP_PB_DeInit(BUTTON_USER); HAL_Delay(1000); punch = true;
+			BSP_PB_DeInit(BUTTON_USER); HAL_Delay(500); punch = true;
 
 			g8WifiState = WIFI_INPUT_PUNCH_DATA;
 			break;
 
 		case WIFI_INPUT_PUNCH_DATA:
 
-			int status = 0;
 			/// TODO: get this part working
 			lcd_write_string("Punch data here...");
-			status = WIFI_SendData(wifiInfo.socket, test, sizeof(test) - 1, &Datalen, WIFI_WRITE_TIMEOUT);
-			WIFI_CloseClientConnection(wifiInfo.socket);
-			while(1)
-				HAL_Delay(5000);
-
+			if(wifi_get_punch_info(&punchInfo) != WIFI_STATUS_OK)
+			{
+				g8WifiState = WIFI_HALT;
+				break;
+			}
 
 			g8WifiState = WIFI_SEND_MSG;
-
 			break;
 
 
 		case WIFI_SEND_MSG:
 
+			lcd_write_string("Sending...");
+			if(wifi_send_data(&wifiInfo, &punchInfo) != WIFI_STATUS_OK)
+			{
+				g8WifiState = WIFI_HALT;
+				break;
+			}
+			lcd_write_string("Sent!");
+			HAL_Delay(5000);
 
+			g8WifiState = WIFI_WAIT_FOR_PUNCH;
 
 			break;
 
@@ -244,9 +243,70 @@ int wifi_connect_server(WifiInfo_s *wifiInfo)
 		}
 
 		wifiInfo->socket = 0;
+		break;
 	}
 
 		return WIFI_STATUS_OK;
+}
+
+int wifi_get_punch_info(PunchInfo_s *punchInfo)
+{
+	char input[5];
+	char* out;
+
+	lcd_write_string("Employee ID:");
+	lcd_set_cursor(1, 5);
+	for (int i = 0; i < 4; i++)
+	{
+		input[i] = KeyPad_WaitForKeyGetChar(0);
+		lcd_send_command(input[i], true);
+		punchInfo->employeeID[i] = input[i];
+	}
+	punchInfo->employeeID[5] = '\0';
+
+
+	lcd_write_string("Employee PIN:");
+	lcd_set_cursor(1, 5);
+	for (int i = 0; i < 4; i++)
+	{
+		input[i] = KeyPad_WaitForKeyGetChar(0);
+		lcd_send_command(input[i], true);
+		punchInfo->employeePin[i] = input[i];
+	}
+	punchInfo->employeePin[5] = '\0';
+
+	// Build send string
+	out = (char*) malloc(sizeof(char)*64);
+	if (out == NULL)
+	{
+		return WIFI_STATUS_ERROR;
+	}
+
+	strcpy(out, "id=");
+	strcat(out, punchInfo->employeeID);
+	strcat(out, "&pin=");
+	strcat(out, punchInfo->employeePin);
+
+	punchInfo->sendOut = out;
+
+	return WIFI_STATUS_OK;
+}
+
+int wifi_send_data(WifiInfo_s *wifiInfo, PunchInfo_s *punchInfo)
+{
+	int status = 0;
+	int Datalen = 0;
+
+	status = WIFI_SendData(wifiInfo->socket, punchInfo->sendOut, strlen(punchInfo->sendOut), &Datalen, WIFI_WRITE_TIMEOUT);
+	if (status != WIFI_STATUS_OK)
+	{
+		return status;
+	}
+
+	// Clean memory
+	free(punchInfo->sendOut);
+	return WIFI_STATUS_OK;
+
 }
 
 

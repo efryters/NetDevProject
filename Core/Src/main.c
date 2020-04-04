@@ -103,13 +103,6 @@ extern SPI_HandleTypeDef hspi;
  */
 int main(void) {
 	/* USER CODE BEGIN 1 */
-	uint8_t MAC_Addr[6];
-	uint8_t IP_Addr[4];
-	uint8_t TxData[] = "STM32 : Hello!\n";
-	int32_t Socket = -1;
-	uint16_t Datalen;
-	int32_t ret;
-
 
 	/* USER CODE END 1 */
 
