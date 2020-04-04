@@ -113,7 +113,7 @@ void AppMain()
 				break;
 			}
 
-			g8WifiState = WIFI_CONNECT_SERVER;
+			g8WifiState = WIFI_WAIT_FOR_PUNCH;
 			break;
 
 		// Connect to the server
@@ -126,7 +126,7 @@ void AppMain()
 				break;
 			}
 
-			g8WifiState = WIFI_WAIT_FOR_PUNCH;
+			g8WifiState = WIFI_INPUT_PUNCH_DATA;
 			break;
 
 		case WIFI_WAIT_FOR_PUNCH:
@@ -138,13 +138,13 @@ void AppMain()
 			// Turn it off now cuz we don't want this happening outside this case.
 			BSP_PB_DeInit(BUTTON_USER); HAL_Delay(500); punch = true;
 
-			g8WifiState = WIFI_INPUT_PUNCH_DATA;
+			g8WifiState = WIFI_CONNECT_SERVER;
 			break;
 
 		case WIFI_INPUT_PUNCH_DATA:
 
 			/// TODO: get this part working
-			lcd_write_string("Punch data here...");
+			//lcd_write_string("Punch data here...");
 			if(wifi_get_punch_info(&punchInfo) != WIFI_STATUS_OK)
 			{
 				g8WifiState = WIFI_HALT;
@@ -305,6 +305,9 @@ int wifi_send_data(WifiInfo_s *wifiInfo, PunchInfo_s *punchInfo)
 
 	// Clean memory
 	free(punchInfo->sendOut);
+
+	// Disconnect from server
+	WIFI_CloseClientConnection(wifiInfo->socket);
 	return WIFI_STATUS_OK;
 
 }
